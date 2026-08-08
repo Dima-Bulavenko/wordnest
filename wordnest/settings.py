@@ -19,7 +19,13 @@ import dj_database_url
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
+AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME")
+AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME")
+AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY")
+AWS_S3_OBJECT_PARAMETERS = {
+    "CacheControl": "max-age=86400",
+}
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
@@ -29,7 +35,7 @@ SECRET_KEY = config("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=False, cast=bool)
 
-ALLOWED_HOSTS = ["127.0.0.1", ".herokuapp.com"]
+ALLOWED_HOSTS = ["127.0.0.1", "l6uvl5cpdd.execute-api.eu-west-1.amazonaws.com"]
 
 
 # Application definition
@@ -49,6 +55,7 @@ INSTALLED_APPS = [
     "allauth.socialaccount.providers.google",
     "allauth.socialaccount.providers.facebook",
     "django_htmx",
+    "storages",
 ]
 
 MIDDLEWARE = [
@@ -89,25 +96,12 @@ WSGI_APPLICATION = "wordnest.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-if DEBUG:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": config("DB_NAME"),
-            "USER": config("DB_USER"),
-            "PASSWORD": config("DB_PASSWORD"),
-            "HOST": config("DB_HOST"),
-            "PORT": config("DB_PORT"),
-        }
-    }
-else:
-    DATABASES = {
-        "default": dj_database_url.parse(
-            config("DATABASE_URL")
-        )  # Set DATABASE_URL environment variable on live server
-    }
 
-CSRF_TRUSTED_ORIGINS = ["https://*.herokuapp.com"]
+DATABASES = {
+    "default": dj_database_url.parse(config("DATABASE_URL"))  # Set DATABASE_URL environment variable on live server
+}
+
+CSRF_TRUSTED_ORIGINS = ["https://l6uvl5cpdd.execute-api.eu-west-1.amazonaws.com"]
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
@@ -142,16 +136,28 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
-
-STATIC_URL = "static/"
-
 STATICFILES_DIRS = [BASE_DIR.joinpath("wordnest", "static")]
+STATIC_ROOT = BASE_DIR.joinpath("staticfiles")
+
+STATICFILES_LOCATION = "static"
+MEDIAFILES_LOCATION = "media"
+STATIC_URL = f"https://d3b6h7ismcns4n.cloudfront.net/{STATICFILES_LOCATION}/"
+MEDIA_URL = f"https://d3b6h7ismcns4n.cloudfront.net/{MEDIAFILES_LOCATION}/"
+
 STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "OPTIONS": {
+            "location": MEDIAFILES_LOCATION,
+        },
+    },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "OPTIONS": {
+            "location": STATICFILES_LOCATION,
+        },
     },
 }
-STATIC_ROOT = BASE_DIR.joinpath("staticfiles")
 
 
 # Default primary key field type
